@@ -28,16 +28,32 @@ Utilizing the `unsafe` package, GoSneak circumvents the Go Garbage Collector (GC
 5. **Protect**: `VirtualProtect` transition to `PAGE_EXECUTE_READ`.
 6. **Trigger**: Execution via `EnumSystemLocalesA` or similar legitimate system callbacks.
 
----
+## 🛠️ Usage
+1. **Clone the burrow**:
+   ```bash
+   git clone https://github.com
+   ```
+2. **Build the stealth binary**:
+   ```bash
+   go build -ldflags="-s -w" -o gosneak.exe .
+   ```
 
+## 🐾 Community
+Want to help the Gopher sneak even better? Contributions to **GoSneak** are always welcome. Open an issue or submit a PR to help.
+
+---
 ## ⚖️ LEGAL DISCLAIMER & LIMITATION OF LIABILITY
 
 **IMPORTANT: READ CAREFULLY BEFORE PROCEEDING.**
 
-1.  **Strictly for Legal Use**: GoSneak is developed and intended solely for authorized cybersecurity research, red-teaming exercises, and educational purposes. It is **not** intended for, nor should it be used for, any illegal or malicious activities.
+1.  **Strictly for Legal Use**: GoSneak is developed and intended solely for authorized cybersecurity research, red-teaming exercises, and educational purposes. It is **not** intended for, nor should it be used for, any illegal or malicious activities.  Don't be a bad gopher.
 2.  **No Liability**: The author(s) of GoSneak shall **not be held legally responsible** for any misuse, damage, or legal consequences resulting from the use of this software. By downloading, compiling, or running this code, you assume full responsibility for your actions.
 3.  **Compliance**: Users are responsible for ensuring that their use of this framework complies with all local, state, national, and international laws and regulations. Unauthorized access to computer systems is a crime.
 4.  **No Warranty**: This software is provided "as-is" without any warranty of any kind, either expressed or implied.
 
 ---
 
+---
+*Developed with 🖤 and a healthy disrespect for `reflect.Safe`*
+
+---
