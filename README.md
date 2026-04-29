@@ -29,14 +29,18 @@ Utilizing the `unsafe` package, GoSneak circumvents the Go Garbage Collector (GC
 6. **Trigger**: Execution via `EnumSystemLocalesA` or similar legitimate system callbacks.
 
 ## 🛠️ Usage
-1. **Clone the burrow**:
+1. **Clone the repo**:
    ```bash
-   git clone https://github.com
+   git clone https://github.com/scarlett-danger/GoSneak.git
    ```
 2. **Build the stealth binary**:
    ```bash
-   go build -ldflags="-s -w" -o gosneak.exe .
+   GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -H=windowsgui" -o GoSneak.exe .
    ```
+3. **Run the geneated binary on a Windows target**
+```
+.\GoSneak.exe
+```
 
 ## 🐾 Community
 Want to help the Gopher sneak even better? Contributions to **GoSneak** are always welcome. Open an issue or submit a PR to help.
