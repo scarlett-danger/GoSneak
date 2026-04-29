@@ -43,7 +43,6 @@ Utilizing the `unsafe` package, GoSneak circumvents the Go Garbage Collector (GC
 ## 🐾 Community
 Want to help the Gopher sneak even better? Contributions to **GoSneak** are always welcome. Open an issue or submit a PR to help.
 
----
 ## ⚖️ LEGAL DISCLAIMER & LIMITATION OF LIABILITY
 
 **IMPORTANT: READ CAREFULLY BEFORE PROCEEDING.**
@@ -52,8 +51,6 @@ Want to help the Gopher sneak even better? Contributions to **GoSneak** are alwa
 2.  **No Liability**: The author(s) of GoSneak shall **not be held legally responsible** for any misuse, damage, or legal consequences resulting from the use of this software. By downloading, compiling, or running this code, you assume full responsibility for your actions.
 3.  **Compliance**: Users are responsible for ensuring that their use of this framework complies with all local, state, national, and international laws and regulations. Unauthorized access to computer systems is a crime.
 4.  **No Warranty**: This software is provided "as-is" without any warranty of any kind, either expressed or implied.
-
----
 
 ---
 *Developed with 🖤 and a healthy disrespect for `reflect.Safe`*
