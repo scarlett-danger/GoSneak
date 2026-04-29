@@ -1,6 +1,9 @@
 # 🐹 GoSneak: Advanced Evasion Framework in Go
 
-[![Go Version](https://shields.io)](https://go.dev)
+![Go Version](https://shields.io)
+![Maintenance](https://shields.io)
+![AI Content](https://shields.io)
+![License](https://shields.io)
 
 **GoSneak** is a Go-native offensive security script for User-Mode Hook Evasion and Manual Memory Management. Implements Indirect Syscalls via custom ASM stubs to bypass EDR telemetry and utilizes RWX-transitioning memory pages outside of the Go Runtime's Garbage Collector (GC) heap. It bridges the gap between Go's high-level concurrency (Fibers/Goroutines) and low-level Win32/NTAPI interactions.
 
