@@ -38,9 +38,9 @@ Utilizing the `unsafe` package, GoSneak circumvents the Go Garbage Collector (GC
    GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -H=windowsgui" -o GoSneak.exe .
    ```
 3. **Run the geneated binary on a Windows target**
-```
-.\GoSneak.exe
-```
+   ```
+   .\GoSneak.exe
+   ```
 
 ## 🐾 Community
 Want to help the Gopher sneak even better? Contributions to **GoSneak** are always welcome. Open an issue or submit a PR to help.
